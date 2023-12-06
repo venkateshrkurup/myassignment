@@ -1,0 +1,13 @@
+import yfinance as yf
+
+# Define the ticker symbol
+tickerSymbol = 'GME'
+
+# Get data on this ticker
+tickerData = yf.Ticker(tickerSymbol)
+
+# Get the historical prices for this ticker
+tickerDf = tickerData.history(period='1d', start='2021-01-01', end='2021-12-31')
+
+# Print the first 5 rows of the DataFrame
+print(tickerDf.head())
