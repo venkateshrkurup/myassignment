@@ -1,0 +1,9 @@
+import yfinance as yf
+
+ticker = "TSLA"
+
+
+tesla = yf.Ticker(ticker)
+
+
+data = tesla.history(period="1d", start="2021-01-01", end="2021-12-31")
