@@ -1,0 +1,76 @@
+
+import pandas as pd
+import yfinance as yf
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
+import plotly.graph_objs as go
+
+# Retrieve Tesla stock data using Yahoo Finance
+tesla_stock = yf.download('TSLA', start='2021-01-01', end='2023-01-01')
+
+# Load Tesla revenue data (you might have your own dataset or source)
+# For demonstration purposes, let's create sample revenue data
+revenue_data = {
+    'Date': pd.date_range(start='2021-01-01', end='2023-01-01', freq='M'),
+    'Revenue': [1200000000, 1500000000, 1800000000, 2000000000, 2200000000, 2500000000, 
+                2800000000, 3000000000, 3200000000, 3500000000, 3800000000, 4000000000]
+}
+tesla_revenue = pd.DataFrame(revenue_data)
+
+# Initialize Dash app
+app = dash.Dash(__name__)
+
+# Define the layout of the dashboard
+app.layout = html.Div([
+    html.H1("Tesla Stock and Revenue Dashboard"),
+    dcc.Graph(id='stock-graph'),
+    dcc.Graph(id='revenue-graph'),
+    html.Div([
+        html.Label('Select Date Range:'),
+        dcc.DatePickerRange(
+            id='date-picker-range',
+            start_date=tesla_stock.index.min(),
+            end_date=tesla_stock.index.max(),
+            display_format='YYYY-MM-DD'
+        )
+    ])
+])
+
+# Callback to update stock graph based on date range
+@app.callback(
+    Output('stock-graph', 'figure'),
+    [Input('date-picker-range', 'start_date'),
+     Input('date-picker-range', 'end_date')]
+)
+def update_stock_graph(start_date, end_date):
+    filtered_stock = tesla_stock.loc[start_date:end_date]
+    stock_figure = go.Figure(data=[go.Candlestick(x=filtered_stock.index,
+                                                  open=filtered_stock['Open'],
+                                                  high=filtered_stock['High'],
+                                                  low=filtered_stock['Low'],
+                                                  close=filtered_stock['Close'])])
+    stock_figure.update_layout(title='Tesla Stock Price',
+                               xaxis_title='Date',
+                               yaxis_title='Price')
+    return stock_figure
+
+# Callback to update revenue graph based on date range
+@app.callback(
+    Output('revenue-graph', 'figure'),
+    [Input('date-picker-range', 'start_date'),
+     Input('date-picker-range', 'end_date')]
+)
+def update_revenue_graph(start_date, end_date):
+    filtered_revenue = tesla_revenue[(tesla_revenue['Date'] >= start_date) & (tesla_revenue['Date'] <= end_date)]
+    revenue_figure = go.Figure()
+    revenue_figure.add_trace(go.Scatter(x=filtered_revenue['Date'], y=filtered_revenue['Revenue'],
+                                        mode='lines+markers', name='Revenue'))
+    revenue_figure.update_layout(title='Tesla Revenue',
+                                 xaxis_title='Date',
+                                 yaxis_title='Revenue')
+    return revenue_figure
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
