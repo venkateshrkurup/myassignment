@@ -1,0 +1,74 @@
+import pandas as pd
+import yfinance as yf
+import dash
+from dash import dcc, html
+from dash.dependencies import Input, Output
+import plotly.graph_objs as go
+
+# Retrieve GameStop stock data using Yahoo Finance
+gme_stock = yf.download('GME', start='2021-01-01', end='2023-01-01')
+
+# Dummy revenue data for GameStop (replace this with actual revenue data)
+revenue_data = {
+    'Date': pd.date_range(start='2021-01-01', end='2023-01-01', freq='M'),
+    'Revenue': [800000000, 900000000, 1000000000, 1100000000, 1200000000, 1300000000,
+                1400000000, 1500000000, 1600000000, 1700000000, 1800000000, 1900000000]
+}
+gme_revenue = pd.DataFrame(revenue_data)
+
+# Initialize Dash app
+app = dash.Dash(__name__)
+
+# Define the layout of the dashboard
+app.layout = html.Div([
+    html.H1("GameStop Stock and Revenue Dashboard"),
+    dcc.Graph(id='stock-graph'),
+    dcc.Graph(id='revenue-graph'),
+    html.Div([
+        html.Label('Select Date Range:'),
+        dcc.DatePickerRange(
+            id='date-picker-range',
+            start_date=gme_stock.index.min(),
+            end_date=gme_stock.index.max(),
+            display_format='YYYY-MM-DD'
+        )
+    ])
+])
+
+# Callback to update stock graph based on date range
+@app.callback(
+    Output('stock-graph', 'figure'),
+    [Input('date-picker-range', 'start_date'),
+     Input('date-picker-range', 'end_date')]
+)
+def update_stock_graph(start_date, end_date):
+    filtered_stock = gme_stock.loc[start_date:end_date]
+    stock_figure = go.Figure(data=[go.Candlestick(x=filtered_stock.index,
+                                                  open=filtered_stock['Open'],
+                                                  high=filtered_stock['High'],
+                                                  low=filtered_stock['Low'],
+                                                  close=filtered_stock['Close'])])
+    stock_figure.update_layout(title='GameStop Stock Price',
+                               xaxis_title='Date',
+                               yaxis_title='Price')
+    return stock_figure
+
+# Callback to update revenue graph based on date range
+@app.callback(
+    Output('revenue-graph', 'figure'),
+    [Input('date-picker-range', 'start_date'),
+     Input('date-picker-range', 'end_date')]
+)
+def update_revenue_graph(start_date, end_date):
+    filtered_revenue = gme_revenue[(gme_revenue['Date'] >= start_date) & (gme_revenue['Date'] <= end_date)]
+    revenue_figure = go.Figure()
+    revenue_figure.add_trace(go.Scatter(x=filtered_revenue['Date'], y=filtered_revenue['Revenue'],
+                                        mode='lines+markers', name='Revenue'))
+    revenue_figure.update_layout(title='GameStop Revenue',
+                                 xaxis_title='Date',
+                                 yaxis_title='Revenue')
+    return revenue_figure
+
+# Run the app
+if __name__ == '__main__':
+    app.run_server(debug=True)
